@@ -31,7 +31,7 @@ if len(sys.argv) >= 3:
     if len(sys.argv) == 4 and str(sys.argv[3]).upper() == "N":
         downloadImages = False
     if len(sys.argv) == 5 and str(sys.argv[4]).isnumeric():
-        maxDepth = sys.argv[4]
+        maxDepth = int(sys.argv[4])
 else:
     print("Exporting: " + str(mainFileToExport) + " + creates a html-copy in vault")
 
