@@ -12,7 +12,7 @@ from random import seed,random,randint
 
 
 
-if(len(sys.argv)!=2 and len(sys.argv)!=3 and len(sys.argv)!=4):
+if(len(sys.argv) != 2 and len(sys.argv) != 3 and len(sys.argv) != 4 and len(sys.argv) != 5):
     print("Wrong number of arguments!\nUsage: python3 exportMdFileToHtml.py <filename.md> <[y/n](optional) y=default => creates a html-export in export vault> <[y/n](optional) y=default => download extrernal images locally>")
     quit()
 
