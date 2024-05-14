@@ -21,6 +21,7 @@ fileToFind = str(sys.argv[1])
 for path in Path('.').rglob(fileToFind):
     mainFileToExport=path
 
+maxDepth = 5
 exportToHtml = True
 downloadImages = True
 if len(sys.argv) >= 3:
@@ -29,6 +30,8 @@ if len(sys.argv) >= 3:
         exportToHtml = False
     if len(sys.argv) == 4 and str(sys.argv[3]).upper() == "N":
         downloadImages = False
+    if len(sys.argv) == 5 and str(sys.argv[4]).isnumeric():
+        maxDepth = sys.argv[4]
 else:
     print("Exporting: " + str(mainFileToExport) + " + creates a html-copy in vault")
 
@@ -67,20 +70,22 @@ def findRelPath(linkPath, currentFile):
         del pLinkRelRootList[0]
     return '/'.join(pLinkRelRootList)
 
-def copyFileToExport(fileToFind, currentFile, traverse=False):
+def copyFileToExport(fileToFind, currentFile, traverse=False, currentDepth=maxDepth):
     linkedFilePath=""
     for path in Path('.').rglob(fileToFind):
         linkedFilePath=path
     if(linkedFilePath != ""):
+        print("lfp = " + str(linkedFilePath))
         destDir = os.path.join(exportDir,linkedFilePath)
         Path(os.path.dirname(destDir)).mkdir(parents=True, exist_ok=True)
-        copyfile(linkedFilePath, destDir)
-        if(traverse and linkedFilePath not in filesAllreadyCopied): #prevent circle ref
-            filesAllreadyCopied.append(linkedFilePath)
-            readFilesRecursive(linkedFilePath)
+        if (str(linkedFilePath).lower() not in filesAllreadyCopied):
+            copyfile(linkedFilePath, destDir)
+            filesAllreadyCopied.append(str(linkedFilePath).lower())
+            if((currentDepth < maxDepth) and traverse):
+                readFilesRecursive(linkedFilePath, currentDepth)
         return findRelPath(linkedFilePath,currentFile)
 
-def findMdFile(line, currentFile):
+def findMdFile(line, currentFile, currentDepth=maxDepth):
     pattern = re.compile(r"(?<!!)\[\[([^\]]*)\]\]")
     for (file) in re.findall(pattern, line):
         fileOnly = file.split("#")[0] 
@@ -88,7 +93,7 @@ def findMdFile(line, currentFile):
         ancor = ""
         if(len(file.split("#"))>1):
             ancor = "#" + file.split("#")[1].replace(" ","_").replace("(","").replace(")","")
-        newFile = copyFileToExport(fileOnly + '.md', currentFile, traverse=True) 
+        newFile = copyFileToExport(fileOnly + '.md', currentFile, traverse=True, currentDepth=(currentDepth + 1)) 
         if(exportToHtml):
             if(newFile and len(newFile)>0):
                 line = line.replace('[[' + file + ']]','<a href="./' + newFile + ".html" + ancor + '">' + newFile.replace("\\","/").split("/")[-1].replace(".md","") + ancor + '</a>')
@@ -241,7 +246,7 @@ def findLines(line):
     return line + "\n"
 
 
-def readFilesRecursive(path):
+def readFilesRecursive(path, currentDepth=0):
     with open(path,"r",encoding='utf-8') as readfile:
         data = readfile.readlines()
 
@@ -289,7 +294,7 @@ def readFilesRecursive(path):
                         if(InComment):
                             continue
                         line = findLines(line)
-                        line = findMdFile(line, currentFile=path)
+                        line = findMdFile(line, currentFile=path, currentDepth=currentDepth)
                         (line, a) = findImages(line, currentFile=path)
                         antalAssets += a
                         line = findInlineCodeBlocks(line)
@@ -317,7 +322,7 @@ def readFilesRecursive(path):
 
     else:
         for line in data:
-            findMdFile(line, currentFile=path)
+            findMdFile(line, currentFile=path, currentDepth=currentDepth)
             (line, a) = findImages(line, currentFile=path)
             antalAssets += a
     
